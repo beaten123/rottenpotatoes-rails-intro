@@ -1,5 +1,50 @@
 class MoviesController < ApplicationController
   
+   def index 
+     
+      sort = params[:sort] 
+    case sort 
+    when 'title' 
+      @movies = Movie.order('title').all 
+    when 'date' 
+      @movies = Movie.order('release_date') 
+    when nil 
+      @movies = Movie.all 
+    end 
+
+     @all_ratings = ['G', 'PG', 'PG-13', 'R'] 
+ 
+ 
+     session[:ratings] = params[:ratings] if params[:ratings] 
+     session[:sort]    = params[:sort]    if params[:sort] 
+ 
+ 
+     if session[:ratings] || session[:sort] 
+       case session[:sort] 
+       when 'title' 
+         @title_hilite = 'hilite' 
+       when 'release_date' 
+         @release_hilite = 'hilite' 
+       end 
+ 
+ 
+       session[:ratings] ||= @all_ratings 
+       @ratings = session[:ratings] 
+       @ratings = @ratings.keys if @ratings.respond_to?(:keys) 
+       @movies = Movie.find(:all, 
+                            order: session[:sort], 
+                            conditions: ["rating IN (?)", @ratings]) 
+     else 
+       @movies = Movie.all 
+     end 
+ 
+ 
+     if session[:ratings] != params[:ratings] || session[:sort] != params[:sort] 
+       redirect_to movies_path(ratings: session[:ratings], sort: session[:sort]) 
+     end 
+   end 
+
+
   def movie_params
     params.require(:movie).permit(:title, :rating, :description, :release_date)
   end
@@ -10,17 +55,6 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
-  def index
-    sort = params[:sort]
-    case sort
-    when 'title'
-      @movies = Movie.order('title').all
-    when 'date'
-      @movies = Movie.order('release_date')
-    when nil
-      @movies = Movie.all
-    end
-  end
 
   def new
     # default: render 'new' template
